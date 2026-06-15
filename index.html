@@ -177,6 +177,30 @@
   .error-box p { color: var(--danger); font-size: 13px; }
 
   @media (max-width: 480px) { .main { padding: 1rem; } .q-text { font-size: 14px; } }
+
+  .nombre-field { margin-bottom: 0.75rem; }
+  .nombre-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .nombre-field input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text); background: var(--bg); outline: none; margin-bottom: 0; }
+  .nombre-field input:focus { border-color: var(--navy); }
+  .hist-btn { width: 100%; padding: 9px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--muted); cursor: pointer; margin-top: 8px; }
+  .hist-btn:hover { background: var(--bg); color: var(--text); }
+  .hist-screen { display: none; }
+  .hist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .hist-header h2 { font-size: 18px; font-weight: 700; color: var(--navy); }
+  .hist-back { padding: 6px 14px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); cursor: pointer; }
+  .hist-empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 14px; }
+  .hist-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 1rem; }
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .hist-table th { background: var(--navy); color: var(--gold); padding: 8px 10px; text-align: left; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .hist-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .hist-table tr:last-child td { border-bottom: none; }
+  .hist-table tr:nth-child(even) td { background: var(--bg); }
+  .pct-alta { font-weight: 700; color: var(--success); }
+  .pct-media { font-weight: 700; color: var(--warn); }
+  .pct-baja { font-weight: 700; color: var(--danger); }
+  .hist-clear { margin-top: 0.75rem; width: 100%; padding: 8px; background: transparent; border: 1px solid var(--danger-border); border-radius: var(--radius-sm); font-size: 12px; color: var(--danger); cursor: pointer; }
+  .ranking-title { font-size: 13px; font-weight: 600; color: var(--navy); margin: 1.25rem 0 0.5rem; }
+  .medal { font-size: 16px; margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -243,8 +267,22 @@
           </div>
         </div>
       </div>
+      <div class="nombre-field">
+        <label>Tu nombre</label>
+        <input type="text" id="nombre-input" placeholder="Escribe tu nombre..." maxlength="30">
+      </div>
       <button class="btn-start" onclick="iniciar()">Empezar la sesión</button>
+      <button class="hist-btn" onclick="verHistorico()">📊 Ver mi historial y ranking</button>
     </div>
+  </div>
+
+  <!-- Histórico -->
+  <div class="hist-screen" id="hist-screen">
+    <div class="hist-header">
+      <h2>📊 Mi historial</h2>
+      <button class="hist-back" onclick="cerrarHistorico()">← Volver</button>
+    </div>
+    <div id="hist-content"></div>
   </div>
 
   <!-- Carga -->
@@ -348,6 +386,15 @@
 
 <script>
 const SHEET_ID = '1rFfxU1LJ9cuo74DOwl38BFT3qVbhwlgFW7PGa_46bcs';
+
+// Cargar nombre guardado
+window.addEventListener('DOMContentLoaded', () => {
+  const n = localStorage.getItem('opo_nombre');
+  if (n) document.getElementById('nombre-input').value = n;
+  document.getElementById('nombre-input').addEventListener('input', function() {
+    localStorage.setItem('opo_nombre', this.value.trim());
+  });
+});
 const TIPO_LABELS = { definicion:'Definición', relacion:'Relación', aplicacion:'Aplicación', excepcion:'Excepción', comparacion:'Comparación', secuencia:'Secuencia' };
 const LETRAS = ['A','B','C','D'];
 
@@ -671,6 +718,64 @@ function pedirAbort() { document.getElementById('confirm-abort').classList.add('
 function cancelarAbort() { document.getElementById('confirm-abort').classList.remove('show'); }
 function confirmarAbort() { document.getElementById('confirm-abort').classList.remove('show'); volver(); }
 
+// HISTÓRICO
+function guardarSesion(pct, correct, answered, elapsed) {
+  const nombre = document.getElementById('nombre-input').value.trim() || 'Anónimo';
+  const hist = JSON.parse(localStorage.getItem('opo_hist') || '[]');
+  hist.push({
+    nombre, pct, correct, answered, elapsed,
+    fecha: new Date().toLocaleDateString('es-ES'),
+    hora: new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'})
+  });
+  localStorage.setItem('opo_hist', JSON.stringify(hist));
+}
+
+function verHistorico() {
+  const hist = JSON.parse(localStorage.getItem('opo_hist') || '[]');
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('hist-screen').style.display = 'block';
+  const cont = document.getElementById('hist-content');
+  if (!hist.length) { cont.innerHTML = '<div class="hist-empty">Todavía no tienes sesiones completadas. ¡Empieza a estudiar!</div>'; return; }
+
+  // Ranking
+  const porNombre = {};
+  hist.forEach(s => {
+    if (!porNombre[s.nombre]) porNombre[s.nombre] = [];
+    porNombre[s.nombre].push(s.pct);
+  });
+  const ranking = Object.entries(porNombre).map(([n,ps]) => ({nombre:n, media:Math.round(ps.reduce((a,b)=>a+b,0)/ps.length), sesiones:ps.length})).sort((a,b)=>b.media-a.media);
+  const medallas = ['🥇','🥈','🥉'];
+
+  let html = '<div class="hist-card"><table class="hist-table"><thead><tr><th></th><th>Nombre</th><th>Media</th><th>Sesiones</th></tr></thead><tbody>';
+  ranking.forEach((r,i) => {
+    html += '<tr><td><span class="medal">'+(medallas[i]||'')+'</span></td><td>'+r.nombre+'</td><td class="'+(r.media>=75?'pct-alta':r.media>=50?'pct-media':'pct-baja')+'">'+r.media+'%</td><td>'+r.sesiones+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Historial completo
+  html += '<div class="ranking-title">Todas las sesiones</div>';
+  html += '<div class="hist-card"><table class="hist-table"><thead><tr><th>Nombre</th><th>Fecha</th><th>Resultado</th><th>Tiempo</th></tr></thead><tbody>';
+  [...hist].reverse().forEach(s => {
+    const min = Math.floor(s.elapsed/60), sec = s.elapsed%60;
+    html += '<tr><td>'+s.nombre+'</td><td>'+s.fecha+' '+s.hora+'</td><td class="'+(s.pct>=75?'pct-alta':s.pct>=50?'pct-media':'pct-baja')+'">'+s.pct+'% ('+s.correct+'/'+s.answered+')</td><td>'+min+'m '+sec+'s</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<button class="hist-clear" onclick="borrarHistorico()">🗑 Borrar todo el historial</button>';
+  cont.innerHTML = html;
+}
+
+function cerrarHistorico() {
+  document.getElementById('hist-screen').style.display = 'none';
+  document.getElementById('welcome-screen').style.display = 'block';
+}
+
+function borrarHistorico() {
+  if (confirm('¿Segura que quieres borrar todo el historial? Esta acción no se puede deshacer.')) {
+    localStorage.removeItem('opo_hist');
+    verHistorico();
+  }
+}
+
 function mostrarResultados() {
   if(timerInterval) clearInterval(timerInterval);
   document.getElementById('test-screen').style.display='none';
@@ -685,24 +790,24 @@ function mostrarResultados() {
   document.getElementById('finish-time').textContent=timerEnabled?'Tiempo usado: '+min+' min '+sec+' seg de '+(timerSeconds/60)+' min':'Tiempo empleado: '+min+' min '+sec+' seg';
   const msg=pct>=90?'¡Excelente! Vas muy bien preparada. 🏆':pct>=70?'Muy bien. Repasa los temas donde fallaste. 💪':pct>=50?'Buen esfuerzo. Sigue practicando cada día. 🌟':'No te rindas, cada sesión cuenta. ¡Tú puedes! 🚀';
   document.getElementById('finish-msg').textContent=msg;
+  guardarSesion(pct, correct, answered, elapsed);
+}
+
+function ocultarTodo() {
+  const ids = ['test-screen','finish-screen','timeout-screen','error-screen','loading-screen','hist-screen'];
+  ids.forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+  document.getElementById('confirm-abort').classList.remove('show');
+  document.getElementById('pildora-overlay').classList.remove('show');
+  document.getElementById('q-wrap').style.display='block';
+  document.getElementById('timer-pill').style.display='none';
+  selectedLetra=null;
+  const sb = document.getElementById('send-btn'); if(sb) sb.classList.remove('visible');
+  const am = document.getElementById('animo-msg'); if(am) am.classList.remove('show');
 }
 
 function volver() {
   if(timerInterval) clearInterval(timerInterval);
-  // Ocultar todas las pantallas
-  document.getElementById('test-screen').style.display='none';
-  document.getElementById('finish-screen').style.display='none';
-  document.getElementById('timeout-screen').style.display='none';
-  document.getElementById('error-screen').style.display='none';
-  document.getElementById('loading-screen').style.display='none';
-  document.getElementById('confirm-abort').classList.remove('show');
-  document.getElementById('pildora-overlay').classList.remove('show');
-  document.getElementById('timer-pill').style.display='none';
-  // Limpiar estado
-  selectedLetra=null;
-  document.getElementById('send-btn').classList.remove('visible');
-  document.getElementById('animo-msg').classList.remove('show');
-  // Mostrar inicio
+  ocultarTodo();
   document.getElementById('welcome-screen').style.display='block';
 }
 </script>
