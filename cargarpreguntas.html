@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpoAdmin · Exportar a Sheets</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1a2744; --gold: #c9a84c; --bg: #f7f6f3; --surface: #fff;
+    --border: #e2e0da; --text: #1a1a18; --muted: #6b6963;
+    --success-bg: #eaf3de; --success: #3b6d11; --success-border: #c0dd97;
+    --danger-bg: #fcebeb; --danger: #a32d2d; --danger-border: #f7c1c1;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .topbar { background: var(--navy); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { color: #fff; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .brand-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; }
+  .role { color: var(--gold); font-size: 11px; background: rgba(201,168,76,0.15); padding: 2px 8px; border-radius: 10px; }
+  .main { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.875rem; text-align: center; }
+  .stat-val { font-size: 26px; font-weight: 700; color: var(--navy); }
+  .stat-val.gold { color: var(--gold); }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.875rem; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.15s; margin-bottom: 0.75rem; }
+  input:focus, textarea:focus { border-color: var(--navy); }
+  textarea { min-height: 160px; font-family: monospace; font-size: 12px; resize: vertical; }
+  .field { margin-bottom: 0.75rem; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: -0.5rem; margin-bottom: 0.75rem; line-height: 1.5; }
+  .hint a { color: var(--navy); }
+  .detect { font-size: 12px; padding: 5px 8px; border-radius: var(--radius-sm); margin-bottom: 0.75rem; display: none; }
+  .detect.ok { background: var(--success-bg); color: var(--success); display: block; }
+  .detect.err { background: var(--danger-bg); color: var(--danger); display: block; }
+  .btn { width: 100%; padding: 11px; background: var(--navy); color: var(--gold); border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.88; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .progress { margin-top: 1rem; display: none; }
+  .prog-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .prog-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--gold); border-radius: 3px; transition: width 0.3s; }
+  .log { font-size: 11px; color: var(--muted); font-family: monospace; margin-top: 0.75rem; line-height: 1.8; max-height: 120px; overflow-y: auto; display: none; }
+  .result { background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem; display: none; }
+  .result h3 { font-size: 14px; color: var(--success); margin-bottom: 4px; }
+  .result p { font-size: 13px; color: var(--success); }
+  .error { background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem; display: none; }
+  .error h3 { font-size: 14px; color: var(--danger); margin-bottom: 4px; }
+  .error p { font-size: 13px; color: var(--danger); }
+  .copy-row { display: flex; gap: 8px; margin-bottom: 0.75rem; }
+  .copy-btn { flex: 1; padding: 8px; font-size: 12px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); cursor: pointer; transition: background 0.15s; }
+  .copy-btn:hover { background: var(--bg); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><div class="brand-dot"></div>OpoAdmin · Exportar a Sheets</div>
+  <span class="role">Panel de exportación</span>
+</div>
+
+<div class="main">
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val gold" id="s-json">0</div><div class="stat-lbl">Preguntas en JSON</div></div>
+    <div class="stat"><div class="stat-val" id="s-sesion">0</div><div class="stat-lbl">Guardadas esta sesión</div></div>
+    <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total acumulado</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Token de Google OAuth</div>
+    <div class="field">
+      <label>Access token (ya29.a0…)</label>
+      <input type="password" id="token" placeholder="Pégalo aquí">
+    </div>
+    <div class="hint">
+      Ve a <a href="https://developers.google.com/oauthplayground" target="_blank">OAuth 2.0 Playground</a> →
+      selecciona <strong>Google Sheets API v4 → spreadsheets</strong> → autoriza → pulsa
+      "Exchange authorization code for tokens" → copia el <strong>Access token</strong>. Caduca en 1 hora.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">JSON de preguntas</div>
+
+    <label>Pega aquí el JSON que te dio Claude</label>
+    <textarea id="json-input" placeholder='{"preguntas":[...]}' oninput="detectar()"></textarea>
+    <div class="detect" id="detect-msg"></div>
+
+    <div class="field">
+      <label>Nombre del documento de origen</label>
+      <input type="text" id="doc-name" placeholder="Temas_1_a_10" value="Temas_1_a_10">
+    </div>
+
+    <button class="btn" id="btn-export" onclick="exportar()">Guardar en Google Sheets</button>
+
+    <div class="progress" id="progress">
+      <div class="prog-label"><span id="prog-msg">Enviando...</span><span id="prog-pct">0%</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div class="log" id="log"></div>
+
+    <div class="result" id="result">
+      <h3 id="result-title"></h3>
+      <p id="result-body"></p>
+    </div>
+    <div class="error" id="error-box">
+      <h3 id="error-title">Error</h3>
+      <p id="error-body"></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID = '1rFfxU1LJ9cuo74DOwl38BFT3qVbhwlgFW7PGa_46bcs';
+let sesion = 0;
+let cfg = {};
+
+try { cfg = JSON.parse(localStorage.getItem('opo_export_local') || '{}'); } catch(e) {}
+if (cfg.token) document.getElementById('token').value = cfg.token;
+if (cfg.total) { document.getElementById('s-total').textContent = cfg.total; }
+
+function detectar() {
+  const raw = document.getElementById('json-input').value.trim();
+  const msg = document.getElementById('detect-msg');
+  if (!raw) { msg.className = 'detect'; document.getElementById('s-json').textContent = '0'; return; }
+  try {
+    const p = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    const n = (p.preguntas || []).length;
+    document.getElementById('s-json').textContent = n;
+    msg.className = 'detect ok';
+    msg.textContent = '✓ ' + n + ' preguntas detectadas correctamente.';
+  } catch(e) {
+    document.getElementById('s-json').textContent = '?';
+    msg.className = 'detect err';
+    msg.textContent = '✗ JSON inválido. Copia desde { hasta } sin cortar nada.';
+  }
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('progress').style.display = 'block';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent = Math.round(pct) + '%';
+  document.getElementById('prog-msg').textContent = msg;
+}
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.style.display = 'block';
+  el.innerHTML += '→ ' + msg + '<br>';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function exportar() {
+  const token = document.getElementById('token').value.trim();
+  const raw = document.getElementById('json-input').value.trim();
+  const doc = document.getElementById('doc-name').value.trim() || 'Sin nombre';
+
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('log').innerHTML = '';
+
+  if (!token) { mostrarError('Token necesario', 'Introduce el token de Google OAuth.'); return; }
+  if (!raw) { mostrarError('Sin JSON', 'Pega el JSON de preguntas en el campo.'); return; }
+
+  let preguntas;
+  try {
+    preguntas = JSON.parse(raw.replace(/```json|```/g, '').trim()).preguntas || [];
+    if (!preguntas.length) throw new Error('No hay preguntas en el JSON.');
+  } catch(e) {
+    mostrarError('JSON inválido', e.message);
+    return;
+  }
+
+  document.getElementById('btn-export').disabled = true;
+  log(preguntas.length + ' preguntas listas');
+  setProgress(5, 'Preparando...');
+
+  const fecha = new Date().toLocaleDateString('es-ES');
+  const rows = preguntas.map(q => [
+    q.pildora || '', q.tema || '', q.dificultad || 'Media', q.tipo || '', q.texto || '',
+    (q.opciones.find(o => o.letra === 'A') || {}).texto || '',
+    (q.opciones.find(o => o.letra === 'B') || {}).texto || '',
+    (q.opciones.find(o => o.letra === 'C') || {}).texto || '',
+    (q.opciones.find(o => o.letra === 'D') || {}).texto || '',
+    (q.opciones.find(o => o.correcta) || {}).letra || '',
+    q.explicacion || '', q.referencia || '', doc, fecha
+  ]);
+
+  try {
+    const CHUNK = 50;
+    let enviadas = 0;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const chunk = rows.slice(i, i + CHUNK);
+      setProgress(5 + Math.round((enviadas / rows.length) * 90), 'Enviando ' + enviadas + '/' + rows.length + '...');
+      const r = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/A1:append?valueInputOption=USER_ENTERED`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ values: chunk })
+        }
+      );
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error((e.error?.message || 'Error ' + r.status) + '. El token puede haber caducado.');
+      }
+      enviadas += chunk.length;
+      log('Guardadas ' + enviadas + ' filas');
+    }
+
+    setProgress(100, '¡Completado!');
+    sesion += preguntas.length;
+    cfg.total = (cfg.total || 0) + preguntas.length;
+    cfg.token = token;
+    localStorage.setItem('opo_export_local', JSON.stringify(cfg));
+
+    document.getElementById('s-sesion').textContent = sesion;
+    document.getElementById('s-total').textContent = cfg.total;
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result-title').textContent = preguntas.length + ' preguntas guardadas en Google Sheets';
+    document.getElementById('result-body').textContent = 'Total acumulado: ' + cfg.total + ' preguntas. Puedes pegar el siguiente bloque de JSON.';
+    document.getElementById('json-input').value = '';
+    document.getElementById('s-json').textContent = '0';
+    document.getElementById('detect-msg').className = 'detect';
+
+  } catch(err) {
+    mostrarError('Error al guardar', err.message);
+  } finally {
+    document.getElementById('btn-export').disabled = false;
+  }
+}
+
+function mostrarError(t, b) {
+  document.getElementById('error-box').style.display = 'block';
+  document.getElementById('error-title').textContent = t;
+  document.getElementById('error-body').textContent = b;
+}
+</script>
+</body>
+</html>
