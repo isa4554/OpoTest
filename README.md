@@ -1,4 +1,4 @@
-# Opus Test · Guía completa del sistema
+# Estudia con Opus · Guía completa del sistema
 
 Sistema de preparación de oposiciones a Auxiliar Administrativo compuesto por dos partes:
 - **App de estudio** (`index.html`) — la usa la opositora para practicar
