@@ -689,9 +689,20 @@ function mostrarResultados() {
 
 function volver() {
   if(timerInterval) clearInterval(timerInterval);
+  // Ocultar todas las pantallas
+  document.getElementById('test-screen').style.display='none';
   document.getElementById('finish-screen').style.display='none';
   document.getElementById('timeout-screen').style.display='none';
+  document.getElementById('error-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('confirm-abort').classList.remove('show');
+  document.getElementById('pildora-overlay').classList.remove('show');
   document.getElementById('timer-pill').style.display='none';
+  // Limpiar estado
+  selectedLetra=null;
+  document.getElementById('send-btn').classList.remove('visible');
+  document.getElementById('animo-msg').classList.remove('show');
+  // Mostrar inicio
   document.getElementById('welcome-screen').style.display='block';
 }
 </script>
