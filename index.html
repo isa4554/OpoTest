@@ -21,7 +21,7 @@
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; }
   .brand-name { color: #fff; font-size: 15px; font-weight: 600; }
-  .countdown-pill { background: rgba(201,168,76,0.18); color: var(--gold); font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px; }
+
 
   .main { max-width: 640px; margin: 0 auto; padding: 1.5rem; }
 
@@ -110,6 +110,12 @@
   @keyframes ringExpand { 0%{opacity:1;transform:translate(-50%,-50%) scale(0)} 100%{opacity:0;transform:translate(-50%,-50%) scale(4)} }
   .trophy-pop { position: fixed; top: 30%; left: 50%; transform: translateX(-50%); font-size: 64px; opacity: 0; pointer-events: none; z-index: 1001; animation: trophyBounce 1s ease-out forwards; }
   @keyframes trophyBounce { 0%{opacity:0;transform:translateX(-50%) translateY(40px) scale(0)} 40%{opacity:1;transform:translateX(-50%) translateY(-10px) scale(1.2)} 70%{transform:translateX(-50%) translateY(5px) scale(0.95)} 85%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)} 100%{opacity:0;transform:translateX(-50%) translateY(-20px) scale(1)} }
+  .bounce-emoji { position: fixed; pointer-events: none; z-index: 1001; font-size: 48px; animation: bounceUp 0.9s ease-out forwards; }
+  @keyframes bounceUp { 0%{opacity:1;transform:translateY(0) scale(1)} 30%{transform:translateY(-80px) scale(1.3)} 60%{transform:translateY(-40px) scale(1)} 80%{transform:translateY(-60px) scale(1.1)} 100%{opacity:0;transform:translateY(-120px) scale(0.8)} }
+  .spiral-dot { position: fixed; border-radius: 50%; pointer-events: none; z-index: 1001; animation: spiralOut 1s ease-out forwards; }
+  @keyframes spiralOut { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:var(--spiral-tx) scale(0)} }
+  .heart-float { position: fixed; pointer-events: none; z-index: 1001; font-size: 28px; animation: heartFloat 1.2s ease-out forwards; }
+  @keyframes heartFloat { 0%{opacity:1;transform:translateY(0) scale(0.5) rotate(-15deg)} 50%{opacity:1;transform:translateY(-60px) scale(1.2) rotate(10deg)} 100%{opacity:0;transform:translateY(-120px) scale(0.8) rotate(-5deg)} }
 
   /* PANTALLAS */
   .loading-screen { text-align: center; padding: 4rem 1rem; }
@@ -118,7 +124,8 @@
   .loading-screen p { font-size: 14px; color: var(--muted); }
 
   .welcome-screen { max-width: 400px; margin: 2rem auto; text-align: center; padding: 0 1.5rem; }
-  .welcome-icon { width: 60px; height: 60px; background: var(--navy); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 28px; }
+  .welcome-icon { width: 120px; height: 120px; margin: 0 auto 1.25rem; display: flex; align-items: center; justify-content: center; }
+  .welcome-icon img { width: 120px; height: 120px; object-fit: contain; border-radius: 24px; }
   .welcome-screen h1 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
   .welcome-screen p { font-size: 14px; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.6; }
   .welcome-config { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: left; }
@@ -207,16 +214,16 @@
 
 <div class="topbar">
   <div class="brand"><div class="brand-dot"></div><span class="brand-name">OpoAdmin</span></div>
-  <span class="countdown-pill" id="countdown"></span>
+
 </div>
 
 <div class="main">
 
   <!-- Bienvenida -->
   <div class="welcome-screen" id="welcome-screen">
-    <div class="welcome-icon">📚</div>
-    <h1>¡Hola!</h1>
-    <p>Tu academia de oposiciones a administrativo. Elige cómo quieres estudiar hoy.</p>
+    <div class="welcome-icon"><img src="opus.png" alt="Opus"></div>
+    <h1>¡Hola, soy Opus!</h1>
+    <p>Soy tu amigo preguntón, quiero ayudarte a estudiar muchas cosas aburridas. ¡Elige cómo quieres torturarte!</p>
     <div class="welcome-config">
       <label class="cfg-label">¿Cuántas preguntas?</label>
       <select class="cfg-select" id="session-size">
@@ -403,17 +410,30 @@ const ANIMO_MSGS = [
   'No pasa nada, cada error es un paso hacia el aprobado 🌟',
   '¡Tú puedes! Esta ya la sabrás para el examen 😊',
   'Error = aprendizaje. ¡Sigue adelante! 🚀',
-  'Nadie aproba sin equivocarse antes. ¡Ánimo! 🎯',
+  'Nadie aprobó sin equivocarse antes. ¡Ánimo! 🎯',
   'Fallo puntual, no general. ¡Continúa! 💫',
   'Lo estás dando todo. ¡Eso es lo que importa! 🌈',
   'Un error menos que cometer en el examen real 😉',
-  '¡Venga, que el 28 de junio es tuyo! 🏆',
-  'Equivocarse es humano, aprobar es tu meta 🎓'
+  '¡El examen es tuyo, lo estás dando todo! 🏆',
+  'Equivocarse es humano, aprobar es tu meta 🎓',
+  'Los campeones también fallan. ¡Sigue! 🥊',
+  'Esta pregunta ya no te pillará en el examen 😎',
+  'El esfuerzo de hoy es el aprobado de mañana 🌅',
+  '¡Anímate! Llevas un ritmo increíble 🔥',
+  'Cada pregunta fallada es una lección aprendida 📖',
+  'El examen no puede contigo. ¡Tú eres más! 💥',
+  'Roma no se construyó en un día, ni los temarios se aprenden solos 🏛️',
+  'Respira, enfócate y a por la siguiente 🧘',
+  '¡Fuera dudas! La próxima la aciertas seguro ✨',
+  'Un tropiezo no es una caída. ¡Adelante! 👊',
+  'El que no falla nunca es porque no intenta. ¡Tú sí intentas! 🎖️',
+  'Cada error te acerca un poco más al aprobado 📈',
+  'No te rindas, el examen está a la vuelta de la esquina 📅',
+  '¡Eso es estudiar de verdad! Los errores enseñan más que los aciertos 🧠',
+  'Confía en ti. Te has preparado muchísimo 💙'
 ];
 
-const EXAM_DATE = new Date('2026-06-28');
-const diffDays = Math.ceil((EXAM_DATE - new Date()) / (1000*60*60*24));
-document.getElementById('countdown').textContent = diffDays > 0 ? diffDays + ' días para el examen' : '¡Hoy es el día!';
+
 
 let allQuestions = [], sessionQuestions = [];
 let currentIdx = 0, sessionAnswers = {}, correct = 0, answered = 0;
@@ -601,13 +621,16 @@ function mostrarAnimo() {
 }
 
 // ANIMACIONES DE ACIERTO
-const ANIMACIONES = ['confetti','stars','fireworks','ring','trophy'];
+const ANIMACIONES = ['confetti','stars','fireworks','ring','trophy','bounce','spiral','hearts'];
 function lanzarAnimacionAcierto() {
   const tipo=ANIMACIONES[Math.floor(Math.random()*ANIMACIONES.length)];
   if(tipo==='confetti') animConfetti();
   else if(tipo==='stars') animStars();
   else if(tipo==='fireworks') animFireworks();
   else if(tipo==='ring') animRing();
+  else if(tipo==='bounce') animBounce();
+  else if(tipo==='spiral') animSpiral();
+  else if(tipo==='hearts') animHearts();
   else animTrophy();
 }
 
@@ -683,6 +706,50 @@ function animTrophy() {
   document.body.appendChild(el);
   setTimeout(()=>el.remove(),1200);
   animConfetti();
+}
+
+function animBounce() {
+  const emojis = ['⚡','🎯','👏','🙌','🤩','😄','🎊','💥','🔥','✅'];
+  const cols = [2,3,4,5,6,7];
+  for(let i=0;i<cols.length;i++){
+    setTimeout(()=>{
+      const el = document.createElement('div');
+      el.className = 'bounce-emoji';
+      el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+      el.style.cssText = `left:${10+Math.random()*80}%;bottom:20%;animation-delay:${i*0.1}s`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),1100);
+    }, i*80);
+  }
+}
+
+function animSpiral() {
+  const colors = ['#c9a84c','#1a2744','#3b6d11','#185fa5','#a32d2d','#f0d98a','#c0dd97'];
+  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+  for(let i=0;i<24;i++){
+    const angle = (i/24)*360;
+    const dist = 80+Math.random()*80;
+    const tx = `translate(${Math.cos(angle*Math.PI/180)*dist}px,${Math.sin(angle*Math.PI/180)*dist}px)`;
+    const el = document.createElement('div');
+    el.className = 'spiral-dot';
+    el.style.cssText = `width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${colors[i%colors.length]};left:${cx}px;top:${cy}px;--spiral-tx:${tx};animation-delay:${i*0.03}s`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1200);
+  }
+}
+
+function animHearts() {
+  const hearts = ['❤️','💛','💚','💙','💜','🧡','💖','💗','💝'];
+  for(let i=0;i<10;i++){
+    setTimeout(()=>{
+      const el = document.createElement('div');
+      el.className = 'heart-float';
+      el.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+      el.style.cssText = `left:${5+Math.random()*90}%;bottom:${10+Math.random()*20}%;animation-delay:${Math.random()*0.3}s`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),1500);
+    }, i*80);
+  }
 }
 
 function updateScore() {
