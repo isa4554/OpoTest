@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpoAdmin · Practica tu test</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1a2744; --gold: #c9a84c; --bg: #f7f6f3; --surface: #ffffff;
+    --border: #e2e0da; --text: #1a1a18; --muted: #6b6963;
+    --success-bg: #eaf3de; --success: #3b6d11; --success-border: #c0dd97;
+    --danger-bg: #fcebeb; --danger: #a32d2d; --danger-border: #f7c1c1;
+    --warn-bg: #faeeda; --warn: #854f0b;
+    --info-bg: #e6f1fb; --info: #185fa5;
+    --radius: 12px; --radius-sm: 7px;
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .topbar { background: var(--navy); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; }
+  .brand-name { color: #fff; font-size: 15px; font-weight: 600; }
+  .countdown-pill { background: rgba(201,168,76,0.18); color: var(--gold); font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px; }
+
+  .main { max-width: 640px; margin: 0 auto; padding: 1.5rem; }
+
+  .session-bar { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 8px; }
+  .session-info { font-size: 13px; color: var(--muted); }
+  .session-info strong { color: var(--text); }
+  .session-right { display: flex; align-items: center; gap: 12px; }
+  .score-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .score-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .score-bar { width: 60px; height: 4px; background: var(--border); border-radius: 2px; }
+  .score-fill { height: 100%; border-radius: 2px; background: var(--gold); transition: width 0.4s; }
+  .score-pct { font-size: 12px; font-weight: 600; color: var(--navy); white-space: nowrap; }
+
+  .timer-pill { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.3s; white-space: nowrap; }
+  .timer-pill.warning { border-color: var(--warn); background: var(--warn-bg); color: var(--warn); }
+  .timer-pill.danger { border-color: var(--danger); background: var(--danger-bg); color: var(--danger); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.6} }
+
+  .pildora-overlay { display: none; background: var(--navy); border-radius: var(--radius); padding: 1.5rem 1.25rem; margin-bottom: 1rem; text-align: center; }
+  .pildora-overlay.show { display: block; }
+  .pildora-emoji { font-size: 32px; margin-bottom: 0.75rem; }
+  .pildora-label { font-size: 10px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .pildora-text { font-size: 15px; color: #fff; line-height: 1.6; margin-bottom: 1.25rem; }
+  .pildora-next-btn { display: inline-block; padding: 9px 24px; background: var(--gold); color: var(--navy); border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+  .pildora-next-btn:hover { opacity: 0.88; }
+
+  .q-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .q-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 0.875rem; flex-wrap: wrap; }
+  .q-num { font-size: 11px; color: var(--muted); }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-tema { background: #e8eaf6; color: #3949ab; }
+  .badge-facil { background: var(--success-bg); color: var(--success); }
+  .badge-media { background: var(--warn-bg); color: var(--warn); }
+  .badge-dificil { background: var(--danger-bg); color: var(--danger); }
+  .badge-tipo { background: var(--info-bg); color: var(--info); }
+
+  .q-text { font-size: 15px; color: var(--text); line-height: 1.6; margin-bottom: 1.125rem; }
+
+  .options { display: flex; flex-direction: column; gap: 7px; }
+  .option { display: flex; align-items: flex-start; gap: 11px; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; user-select: none; }
+  .option:hover:not(.answered) { border-color: var(--navy); background: #f4f5fa; }
+  .option.correct { border-color: var(--success-border); background: var(--success-bg); }
+  .option.incorrect { border-color: var(--danger-border); background: var(--danger-bg); }
+  .option.answered { cursor: default; }
+  .opt-badge { width: 26px; height: 26px; min-width: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted); transition: all 0.15s; }
+  .option.correct .opt-badge { background: var(--success); color: #fff; border-color: var(--success); }
+  .option.incorrect .opt-badge { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .opt-text { font-size: 14px; color: var(--text); line-height: 1.5; padding-top: 3px; }
+  .option.correct .opt-text { color: var(--success); }
+  .option.incorrect .opt-text { color: var(--danger); }
+
+  .explanation { margin-top: 1rem; padding: 0.875rem 1rem; background: var(--bg); border-radius: var(--radius-sm); border-left: 3px solid var(--gold); display: none; }
+  .explanation.show { display: block; }
+  .exp-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+  .exp-body { font-size: 13px; color: var(--text); line-height: 1.65; }
+  .exp-ref { font-size: 11px; color: var(--muted); margin-top: 8px; background: var(--surface); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); display: inline-block; }
+
+  .nav-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; }
+  .nav-btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.15s; }
+  .nav-btn:hover { background: var(--bg); }
+  .nav-btn.primary { background: var(--navy); color: var(--gold); border-color: var(--navy); }
+  .nav-counter { font-size: 13px; color: var(--muted); }
+
+  .loading-screen { text-align: center; padding: 4rem 1rem; }
+  .spinner { width: 36px; height: 36px; border: 2.5px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-screen p { font-size: 14px; color: var(--muted); }
+
+  .welcome-screen { max-width: 400px; margin: 2rem auto; text-align: center; padding: 0 1.5rem; }
+  .welcome-icon { width: 60px; height: 60px; background: var(--navy); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 28px; }
+  .welcome-screen h1 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+  .welcome-screen p { font-size: 14px; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.6; }
+  .welcome-config { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: left; }
+  .cfg-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .cfg-select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text); background: var(--bg); outline: none; margin-bottom: 0.75rem; }
+  .filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.75rem; }
+  .timer-config { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.875rem; margin-bottom: 0.75rem; }
+  .timer-config-header { display: flex; align-items: center; justify-content: space-between; }
+  .timer-config-label { font-size: 12px; color: var(--muted); }
+  .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 20px; transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--navy); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+  .timer-options { display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 0.5px solid var(--border); }
+  .timer-options.show { display: block; }
+  .timer-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .preset-btn { padding: 4px 12px; border: 1px solid var(--border); border-radius: 20px; font-size: 12px; background: var(--surface); color: var(--text); cursor: pointer; }
+  .preset-btn:hover, .preset-btn.active { background: var(--navy); color: var(--gold); border-color: var(--navy); }
+  .custom-time { display: flex; align-items: center; gap: 8px; margin-top: 0.5rem; }
+  .custom-time label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .custom-time input { width: 70px; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; text-align: center; }
+  .custom-time span { font-size: 12px; color: var(--muted); }
+  .btn-start { width: 100%; padding: 11px; background: var(--navy); color: var(--gold); border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .btn-start:hover { opacity: 0.88; }
+
+  .timeout-screen { text-align: center; padding: 2.5rem 1rem; display: none; }
+  .timeout-screen h2 { font-size: 20px; font-weight: 700; color: var(--danger); margin-bottom: 0.5rem; }
+  .timeout-screen p { font-size: 14px; color: var(--muted); margin-bottom: 1.5rem; }
+
+  .finish-screen { text-align: center; padding: 2rem 1rem; display: none; }
+  .finish-icon { width: 64px; height: 64px; background: var(--warn-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 30px; }
+  .finish-screen h2 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; }
+  .finish-screen > p { font-size: 15px; color: var(--muted); margin-bottom: 1.5rem; }
+  .finish-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 1rem; }
+  .finish-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.875rem 0.5rem; text-align: center; }
+  .finish-val { font-size: 24px; font-weight: 700; color: var(--navy); }
+  .finish-val.gold { color: var(--gold); }
+  .finish-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .finish-time { font-size: 12px; color: var(--muted); margin-bottom: 1.25rem; }
+  .btn-repeat { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 24px; background: var(--navy); color: var(--gold); border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+  .error-box { background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: var(--radius); padding: 1.25rem; margin: 2rem auto; max-width: 400px; text-align: center; }
+  .error-box h3 { color: var(--danger); font-size: 15px; margin-bottom: 4px; }
+  .error-box p { color: var(--danger); font-size: 13px; }
+
+  @media (max-width: 480px) { .main { padding: 1rem; } .q-text { font-size: 14px; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    <span class="brand-name">OpoAdmin</span>
+  </div>
+  <span class="countdown-pill" id="countdown"></span>
+</div>
+
+<div class="main">
+
+  <div class="welcome-screen" id="welcome-screen">
+    <div class="welcome-icon">📚</div>
+    <h1>¡Hola!</h1>
+    <p>Tu academia de oposiciones a administrativo. Elige cómo quieres estudiar hoy.</p>
+    <div class="welcome-config">
+      <label class="cfg-label">¿Cuántas preguntas?</label>
+      <select class="cfg-select" id="session-size">
+        <option value="10" selected>10 preguntas</option>
+        <option value="20">20 preguntas</option>
+        <option value="40">40 preguntas (simulacro)</option>
+      </select>
+      <div class="filter-row">
+        <div>
+          <label class="cfg-label">Dificultad</label>
+          <select class="cfg-select" style="margin-bottom:0" id="filter-dif">
+            <option value="todas" selected>Todas</option>
+            <option value="Fácil">Solo fáciles</option>
+            <option value="Media">Solo medias</option>
+            <option value="Difícil">Solo difíciles</option>
+          </select>
+        </div>
+        <div>
+          <label class="cfg-label">Tipo de pregunta</label>
+          <select class="cfg-select" style="margin-bottom:0" id="filter-tipo">
+            <option value="todos" selected>Todos</option>
+            <option value="definicion">Definición</option>
+            <option value="relacion">Relación</option>
+            <option value="aplicacion">Aplicación</option>
+            <option value="excepcion">Excepción</option>
+            <option value="comparacion">Comparación</option>
+            <option value="secuencia">Secuencia</option>
+          </select>
+        </div>
+      </div>
+      <div class="timer-config">
+        <div class="timer-config-header">
+          <span class="timer-config-label">⏱ Límite de tiempo</span>
+          <label class="toggle">
+            <input type="checkbox" id="timer-toggle" onchange="toggleTimer(this)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="timer-options" id="timer-options">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Tiempo total:</div>
+          <div class="timer-presets">
+            <button class="preset-btn" onclick="setPreset(5)">5 min</button>
+            <button class="preset-btn" onclick="setPreset(10)">10 min</button>
+            <button class="preset-btn" onclick="setPreset(15)">15 min</button>
+            <button class="preset-btn" onclick="setPreset(30)">30 min</button>
+            <button class="preset-btn" onclick="setPreset(60)">1 hora</button>
+          </div>
+          <div class="custom-time">
+            <label>O pon el tiempo:</label>
+            <input type="number" id="custom-min" min="1" max="180" value="15" onchange="clearPresets()">
+            <span>minutos</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn-start" onclick="iniciar()">Empezar la sesión</button>
+    </div>
+  </div>
+
+  <div class="loading-screen" id="loading-screen" style="display:none">
+    <div class="spinner"></div>
+    <p id="loading-msg">Cargando preguntas...</p>
+  </div>
+
+  <div class="error-box" id="error-screen" style="display:none">
+    <h3>No se pudieron cargar las preguntas</h3>
+    <p id="error-msg"></p>
+  </div>
+
+  <div id="test-screen" style="display:none">
+    <div class="session-bar">
+      <div class="session-info">Sesión · <strong id="session-label"></strong></div>
+      <div class="session-right">
+        <div class="timer-pill" id="timer-pill" style="display:none">
+          ⏱ <span id="timer-display">00:00</span>
+        </div>
+        <div class="score-bar-wrap">
+          <span class="score-label">Aciertos</span>
+          <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+          <span class="score-pct" id="score-pct">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pildora-overlay" id="pildora-overlay">
+      <div class="pildora-emoji">💡</div>
+      <div class="pildora-label">¿Sabías que...?</div>
+      <div class="pildora-text" id="pildora-text"></div>
+      <button class="pildora-next-btn" onclick="cerrarPildoraYAvanzar()">Siguiente pregunta →</button>
+    </div>
+
+    <div id="q-wrap">
+      <div class="q-card">
+        <div class="q-meta">
+          <span class="q-num" id="q-num"></span>
+          <span class="badge badge-tema" id="q-tema"></span>
+          <span class="badge" id="q-diff"></span>
+          <span class="badge badge-tipo" id="q-tipo" style="display:none"></span>
+        </div>
+        <p class="q-text" id="q-text"></p>
+        <div class="options" id="options-container"></div>
+        <div class="explanation" id="explanation">
+          <div class="exp-label">Explicación</div>
+          <div class="exp-body" id="exp-body"></div>
+          <div id="exp-ref-wrap" style="margin-top:8px;display:none">
+            <span class="exp-ref" id="exp-ref"></span>
+          </div>
+        </div>
+      </div>
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="anterior()">← Anterior</button>
+        <span class="nav-counter" id="nav-counter"></span>
+        <button class="nav-btn primary" id="next-btn" onclick="siguiente()">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="timeout-screen" id="timeout-screen">
+    <div style="font-size:48px;margin-bottom:1rem;">⏰</div>
+    <h2>¡Tiempo agotado!</h2>
+    <p id="timeout-msg"></p>
+    <button class="btn-repeat" onclick="mostrarResultados()">Ver mis resultados</button>
+  </div>
+
+  <div class="finish-screen" id="finish-screen">
+    <div class="finish-icon">⭐</div>
+    <h2>¡Sesión completada!</h2>
+    <p id="finish-msg"></p>
+    <div class="finish-stats">
+      <div class="finish-stat"><div class="finish-val gold" id="f-pct">—</div><div class="finish-label">Aciertos</div></div>
+      <div class="finish-stat"><div class="finish-val" id="f-correct">—</div><div class="finish-label">Correctas</div></div>
+      <div class="finish-stat"><div class="finish-val" id="f-total">—</div><div class="finish-label">Respondidas</div></div>
+    </div>
+    <div class="finish-time" id="finish-time"></div>
+    <button class="btn-repeat" onclick="volver()">Nueva sesión</button>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID = '1rFfxU1LJ9cuo74DOwl38BFT3qVbhwlgFW7PGa_46bcs';
+const TIPO_LABELS = { definicion:'Definición', relacion:'Relación', aplicacion:'Aplicación', excepcion:'Excepción', comparacion:'Comparación', secuencia:'Secuencia' };
+const LETRAS = ['A','B','C','D'];
+
+const EXAM_DATE = new Date('2026-06-28');
+const diffDays = Math.ceil((EXAM_DATE - new Date()) / (1000*60*60*24));
+document.getElementById('countdown').textContent = diffDays > 0 ? diffDays + ' días para el examen' : '¡Hoy es el día!';
+
+let allQuestions = [], sessionQuestions = [];
+let currentIdx = 0, sessionAnswers = {}, correct = 0, answered = 0;
+let timerEnabled = false, timerSeconds = 0, timerRemaining = 0, timerInterval = null;
+let sessionStartTime = null, pendingNext = false;
+// Contador de veces que cada letra ha sido la respuesta correcta en esta sesión
+let letraCount = {A:0, B:0, C:0, D:0};
+// Orden barajado de opciones por pregunta (se genera una vez y se reutiliza)
+let opcionesBarajadas = {};
+
+function toggleTimer(cb) {
+  timerEnabled = cb.checked;
+  document.getElementById('timer-options').classList.toggle('show', timerEnabled);
+}
+function setPreset(min) {
+  document.getElementById('custom-min').value = min;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+function clearPresets() { document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active')); }
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+// Baraja las opciones asignando la correcta a la letra menos usada para balancear
+function barajarOpciones(q, idx) {
+  if (opcionesBarajadas[idx]) return opcionesBarajadas[idx];
+
+  // Identificar cuál es la opción correcta
+  const correctaOriginal = q.opciones.find(o => o.letra === q.correcta);
+  const incorrectas = q.opciones.filter(o => o.letra !== q.correcta);
+
+  // Barajar las incorrectas
+  const incorrectasBarajadas = shuffle(incorrectas);
+
+  // Elegir la letra destino para la correcta: la que menos veces ha salido
+  const letraMenosUsada = LETRAS.reduce((min, l) => letraCount[l] < letraCount[min] ? l : min, 'A');
+
+  // Construir el nuevo orden: colocar la correcta en la posición de letraMenosUsada
+  const posicionCorrecta = LETRAS.indexOf(letraMenosUsada);
+  const opcionesOrdenadas = [];
+  let incorrectaIdx = 0;
+  for (let i = 0; i < 4; i++) {
+    if (i === posicionCorrecta) {
+      opcionesOrdenadas.push({ texto: correctaOriginal.texto, esCorrecta: true });
+    } else {
+      opcionesOrdenadas.push({ texto: incorrectasBarajadas[incorrectaIdx].texto, esCorrecta: false });
+      incorrectaIdx++;
+    }
+  }
+
+  const resultado = { opciones: opcionesOrdenadas, letraCorrecta: letraMenosUsada };
+  opcionesBarajadas[idx] = resultado;
+  return resultado;
+}
+
+function pildoraAleatoria() {
+  if (!allQuestions.length) return '';
+  return allQuestions[Math.floor(Math.random() * allQuestions.length)].pildora || '';
+}
+
+async function cargarPreguntas() {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('No se pudo acceder a la hoja de preguntas.');
+  const text = await resp.text();
+  const lines = text.trim().split('\n').slice(1);
+  return lines.filter(l => l.trim()).map((line, i) => {
+    const cols = line.match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    const clean = c => (c||'').replace(/^"|"$/g,'').replace(/""/g,'"').trim();
+    return {
+      id: i, pildora: clean(cols[0]), tema: clean(cols[1])||'General',
+      dificultad: clean(cols[2])||'Media', tipo: clean(cols[3])||'',
+      texto: clean(cols[4]),
+      opciones: [
+        {letra:'A',texto:clean(cols[5])},{letra:'B',texto:clean(cols[6])},
+        {letra:'C',texto:clean(cols[7])},{letra:'D',texto:clean(cols[8])}
+      ],
+      correcta: clean(cols[9]), explicacion: clean(cols[10]), referencia: clean(cols[11])
+    };
+  }).filter(q => q.texto);
+}
+
+async function iniciar() {
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'block';
+  try {
+    allQuestions = await cargarPreguntas();
+    if (!allQuestions.length) throw new Error('La base de datos todavía no tiene preguntas.');
+    const filterDif = document.getElementById('filter-dif').value;
+    const filterTipo = document.getElementById('filter-tipo').value;
+    let filtered = allQuestions;
+    if (filterDif !== 'todas') filtered = filtered.filter(q => q.dificultad === filterDif);
+    if (filterTipo !== 'todos') filtered = filtered.filter(q => q.tipo === filterTipo);
+    if (!filtered.length) throw new Error('No hay preguntas con ese filtro. Prueba otra combinación.');
+    const size = parseInt(document.getElementById('session-size').value);
+    sessionQuestions = shuffle(filtered).slice(0, Math.min(size, filtered.length));
+    currentIdx = 0; sessionAnswers = {}; correct = 0; answered = 0;
+    pendingNext = false; letraCount = {A:0,B:0,C:0,D:0}; opcionesBarajadas = {};
+    sessionStartTime = Date.now();
+    if (timerEnabled) {
+      timerSeconds = parseInt(document.getElementById('custom-min').value) * 60;
+      timerRemaining = timerSeconds;
+      iniciarTemporizador();
+    }
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('test-screen').style.display = 'block';
+    document.getElementById('session-label').textContent = sessionQuestions.length + ' preguntas · ' + allQuestions.length + ' en total';
+    renderQuestion(0);
+  } catch(err) {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('error-screen').style.display = 'block';
+    document.getElementById('error-msg').textContent = err.message;
+  }
+}
+
+function iniciarTemporizador() {
+  document.getElementById('timer-pill').style.display = 'flex';
+  actualizarDisplay();
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    actualizarDisplay();
+    if (timerRemaining <= 0) { clearInterval(timerInterval); tiempoAgotado(); }
+  }, 1000);
+}
+
+function actualizarDisplay() {
+  const min = Math.floor(timerRemaining/60), sec = timerRemaining%60;
+  document.getElementById('timer-display').textContent = String(min).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  const pill = document.getElementById('timer-pill');
+  const pct = timerRemaining/timerSeconds;
+  pill.className = 'timer-pill'+(pct<=0.1?' danger':pct<=0.25?' warning':'');
+}
+
+function tiempoAgotado() {
+  document.getElementById('test-screen').style.display = 'none';
+  document.getElementById('timeout-screen').style.display = 'block';
+  document.getElementById('timeout-msg').textContent = 'Respondiste '+Object.keys(sessionAnswers).length+' de '+sessionQuestions.length+' preguntas.';
+}
+
+function renderQuestion(idx) {
+  const q = sessionQuestions[idx];
+  if (!q) return;
+  currentIdx = idx;
+  const isAnswered = sessionAnswers[idx] !== undefined;
+
+  document.getElementById('pildora-overlay').classList.remove('show');
+  document.getElementById('q-wrap').style.display = 'block';
+
+  document.getElementById('q-num').textContent = 'Pregunta '+(idx+1)+' de '+sessionQuestions.length;
+  document.getElementById('q-tema').textContent = q.tema;
+  const diffEl = document.getElementById('q-diff');
+  diffEl.textContent = q.dificultad;
+  diffEl.className = 'badge '+({'Fácil':'badge-facil','Media':'badge-media','Difícil':'badge-dificil'}[q.dificultad]||'badge-media');
+  const tipoEl = document.getElementById('q-tipo');
+  if (q.tipo && TIPO_LABELS[q.tipo]) { tipoEl.textContent = TIPO_LABELS[q.tipo]; tipoEl.style.display='inline-block'; } else tipoEl.style.display='none';
+  document.getElementById('q-text').textContent = q.texto;
+  document.getElementById('nav-counter').textContent = (idx+1)+' / '+sessionQuestions.length;
+  document.getElementById('next-btn').textContent = idx < sessionQuestions.length-1 ? 'Siguiente →' : 'Ver resultados';
+
+  // Obtener opciones barajadas con balanceo
+  const barajado = barajarOpciones(q, idx);
+  const letraElegida = isAnswered ? sessionAnswers[idx] : null;
+
+  document.getElementById('options-container').innerHTML = barajado.opciones.map((opt, i) => {
+    const letra = LETRAS[i];
+    let cls = 'option';
+    if (isAnswered) {
+      cls += ' answered';
+      if (opt.esCorrecta) cls += ' correct';
+      else if (letra === letraElegida) cls += ' incorrect';
+    }
+    return `<div class="${cls}" onclick="responder(${idx},'${letra}')">
+      <div class="opt-badge">${letra}</div>
+      <div class="opt-text">${opt.texto}</div>
+    </div>`;
+  }).join('');
+
+  const expEl = document.getElementById('explanation');
+  if (isAnswered) {
+    expEl.classList.add('show');
+    document.getElementById('exp-body').textContent = q.explicacion;
+    const refWrap = document.getElementById('exp-ref-wrap');
+    if (q.referencia) { refWrap.style.display='block'; document.getElementById('exp-ref').textContent='📍 '+q.referencia; }
+    else refWrap.style.display='none';
+  } else expEl.classList.remove('show');
+
+  updateScore();
+}
+
+function responder(idx, letra) {
+  if (sessionAnswers[idx] !== undefined) return;
+  sessionAnswers[idx] = letra;
+  answered++;
+  const barajado = opcionesBarajadas[idx];
+  const esCorrecta = barajado && barajado.opciones[LETRAS.indexOf(letra)].esCorrecta;
+  if (esCorrecta) { correct++; }
+  // Actualizar contador de balanceo con la letra correcta de esta pregunta
+  if (barajado) letraCount[barajado.letraCorrecta]++;
+  renderQuestion(idx);
+}
+
+function updateScore() {
+  if (!answered) { document.getElementById('score-pct').textContent='—'; document.getElementById('score-fill').style.width='0%'; return; }
+  const pct = Math.round((correct/answered)*100);
+  document.getElementById('score-pct').textContent = pct+'%';
+  document.getElementById('score-fill').style.width = pct+'%';
+}
+
+function siguiente() {
+  if (currentIdx < sessionQuestions.length-1) {
+    if (sessionAnswers[currentIdx] !== undefined) mostrarPildora(currentIdx+1);
+    else renderQuestion(currentIdx+1);
+  } else {
+    mostrarResultados();
+  }
+}
+
+function mostrarPildora(nextIdx) {
+  pendingNext = nextIdx;
+  document.getElementById('pildora-text').textContent = pildoraAleatoria() || 'Sigue estudiando, cada pregunta cuenta.';
+  document.getElementById('q-wrap').style.display = 'none';
+  document.getElementById('pildora-overlay').classList.add('show');
+}
+
+function cerrarPildoraYAvanzar() {
+  document.getElementById('pildora-overlay').classList.remove('show');
+  if (typeof pendingNext === 'number') { renderQuestion(pendingNext); pendingNext = false; }
+  else mostrarResultados();
+}
+
+function anterior() { if (currentIdx > 0) renderQuestion(currentIdx-1); }
+
+function mostrarResultados() {
+  if (timerInterval) clearInterval(timerInterval);
+  document.getElementById('test-screen').style.display = 'none';
+  document.getElementById('timeout-screen').style.display = 'none';
+  document.getElementById('finish-screen').style.display = 'block';
+  const pct = answered > 0 ? Math.round((correct/answered)*100) : 0;
+  document.getElementById('f-pct').textContent = pct+'%';
+  document.getElementById('f-correct').textContent = correct;
+  document.getElementById('f-total').textContent = answered;
+  const elapsed = Math.round((Date.now()-sessionStartTime)/1000);
+  const min = Math.floor(elapsed/60), sec = elapsed%60;
+  document.getElementById('finish-time').textContent = timerEnabled
+    ? 'Tiempo usado: '+min+' min '+sec+' seg de '+(timerSeconds/60)+' min'
+    : 'Tiempo empleado: '+min+' min '+sec+' seg';
+  const msg = pct>=90?'¡Excelente! Vas muy bien preparada.':pct>=70?'Muy bien. Repasa los temas donde fallaste.':pct>=50?'Buen esfuerzo. Sigue practicando cada día.':'No te rindas, cada sesión cuenta. ¡Tú puedes!';
+  document.getElementById('finish-msg').textContent = msg;
+}
+
+function volver() {
+  if (timerInterval) clearInterval(timerInterval);
+  document.getElementById('finish-screen').style.display = 'none';
+  document.getElementById('timeout-screen').style.display = 'none';
+  document.getElementById('timer-pill').style.display = 'none';
+  document.getElementById('welcome-screen').style.display = 'block';
+}
+</script>
+</body>
+</html>
